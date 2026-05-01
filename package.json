@@ -1,0 +1,19 @@
+{
+  "name": "com.cupkekgames.statemachines",
+  "displayName": "CupkekGames StateMachines",
+  "version": "0.1.0",
+  "author": {
+    "name": "CupkekGames",
+    "url": "https://www.docs.cupkek.games"
+  },
+  "unity": "6000.0",
+  "documentationUrl": "https://docs.cupkek.games/",
+  "description": "ScriptableObject-driven state machine. State / StateAction / StateCondition / StateTransition with TransitionTableSO assets, plus an editor window (TransitionTableEditorWindow), debugger, and ScriptTemplates for quick action/condition creation.",
+  "keywords": [
+    "StateMachine",
+    "FSM",
+    "TransitionTable",
+    "CupkekGames"
+  ],
+  "dependencies": {}
+}
