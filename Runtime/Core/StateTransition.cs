@@ -1,4 +1,4 @@
-﻿namespace CupkekGames.StateMachine
+﻿namespace CupkekGames.StateMachines
 {
   public class StateTransition : IStateComponent
   {
