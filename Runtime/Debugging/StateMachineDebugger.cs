@@ -79,7 +79,7 @@ namespace CupkekGames.StateMachines.Debugging
         _logBuilder.AppendLine($" [{UNCHECK_MARK}]");
     }
 
-    internal void TransitionEvaluationEnd(bool passed, StateAction[] actions)
+    internal void TransitionEvaluationEnd(bool passed, IStateAction[] actions)
     {
       if (passed)
         currentState = _targetState;
@@ -96,7 +96,7 @@ namespace CupkekGames.StateMachines.Debugging
       _logBuilder.Clear();
     }
 
-    private void LogActions(StateAction[] actions)
+    private void LogActions(IStateAction[] actions)
     {
       if (!appendActionsInfo)
         return;
@@ -104,9 +104,9 @@ namespace CupkekGames.StateMachines.Debugging
       _logBuilder.AppendLine();
       _logBuilder.AppendLine("State Actions:");
 
-      foreach (StateAction action in actions)
+      foreach (IStateAction action in actions)
       {
-        _logBuilder.AppendLine($"    {THICK_ARROW} {action._originSO.name}");
+        _logBuilder.AppendLine($"    {THICK_ARROW} {action.GetType().Name}");
       }
     }
 

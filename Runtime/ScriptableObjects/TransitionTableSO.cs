@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,16 +8,18 @@ namespace CupkekGames.StateMachines
   [CreateAssetMenu(fileName = "NewTransitionTable", menuName = "CupkekGames/State Machines/Transition Table")]
   public class TransitionTableSO : ScriptableObject
   {
-    [SerializeField] private TransitionItem[] _transitions;
+    [SerializeField] private List<TransitionItem> _transitions = new List<TransitionItem>();
+
+    public IReadOnlyList<TransitionItem> Transitions => _transitions;
 
     /// <summary>
     /// Will get the initial state and instantiate all subsequent states, transitions, actions and conditions.
     /// </summary>
     internal State GetInitialState(StateMachine stateMachine)
     {
-      var states = new List<State>();
-      var transitions = new List<StateTransition>();
-      var createdInstances = new Dictionary<ScriptableObject, object>();
+      List<State> states = new List<State>();
+      List<StateTransition> transitions = new List<StateTransition>();
+      Dictionary<StateSO, State> createdStates = new Dictionary<StateSO, State>();
 
       var fromStates = _transitions.GroupBy(transition => transition.FromState);
 
@@ -26,17 +28,17 @@ namespace CupkekGames.StateMachines
         if (fromState.Key == null)
           throw new ArgumentNullException(nameof(fromState.Key), $"TransitionTable: {name}");
 
-        var state = fromState.Key.GetState(stateMachine, createdInstances);
+        State state = fromState.Key.GetState(stateMachine, createdStates);
         states.Add(state);
 
         transitions.Clear();
-        foreach (var transitionItem in fromState)
+        foreach (TransitionItem transitionItem in fromState)
         {
           if (transitionItem.ToState == null)
             throw new ArgumentNullException(nameof(transitionItem.ToState), $"TransitionTable: {name}, From State: {fromState.Key.name}");
 
-          var toState = transitionItem.ToState.GetState(stateMachine, createdInstances);
-          ProcessConditionUsages(stateMachine, transitionItem.Conditions, createdInstances, out var conditions, out var resultGroups);
+          State toState = transitionItem.ToState.GetState(stateMachine, createdStates);
+          ProcessConditionUsages(stateMachine, transitionItem.Conditions, out StateConditionEvaluation[] conditions, out int[] resultGroups);
           transitions.Add(new StateTransition(toState, conditions, resultGroups));
         }
 
@@ -49,17 +51,24 @@ namespace CupkekGames.StateMachines
 
     private static void ProcessConditionUsages(
       StateMachine stateMachine,
-      ConditionUsage[] conditionUsages,
-      Dictionary<ScriptableObject, object> createdInstances,
-      out StateCondition[] conditions,
+      List<ConditionUsage> conditionUsages,
+      out StateConditionEvaluation[] conditions,
       out int[] resultGroups)
     {
-      int count = conditionUsages.Length;
-      conditions = new StateCondition[count];
+      int count = conditionUsages.Count;
+      conditions = new StateConditionEvaluation[count];
       for (int i = 0; i < count; i++)
-        conditions[i] = conditionUsages[i].Condition.GetCondition(
-          stateMachine, conditionUsages[i].ExpectedResult == Result.True, createdInstances);
-
+      {
+        IStateCondition template = conditionUsages[i].Condition;
+        if (template == null)
+        {
+          Debug.LogError($"TransitionTableSO has a null condition at index {i}.");
+          continue;
+        }
+        IStateCondition instance = template.Clone();
+        instance.Awake(stateMachine);
+        conditions[i] = new StateConditionEvaluation(stateMachine, instance, conditionUsages[i].ExpectedResult == Result.True);
+      }
 
       List<int> resultGroupsList = new List<int>();
       for (int i = 0; i < count; i++)
@@ -77,18 +86,18 @@ namespace CupkekGames.StateMachines
     }
 
     [Serializable]
-    public struct TransitionItem
+    public class TransitionItem
     {
       public StateSO FromState;
       public StateSO ToState;
-      public ConditionUsage[] Conditions;
+      public List<ConditionUsage> Conditions = new List<ConditionUsage>();
     }
 
     [Serializable]
-    public struct ConditionUsage
+    public class ConditionUsage
     {
       public Result ExpectedResult;
-      public StateConditionSO Condition;
+      [SerializeReference] public IStateCondition Condition;
       public Operator Operator;
     }
 

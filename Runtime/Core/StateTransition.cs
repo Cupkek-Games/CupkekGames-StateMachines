@@ -1,19 +1,19 @@
-﻿namespace CupkekGames.StateMachines
+namespace CupkekGames.StateMachines
 {
-  public class StateTransition : IStateComponent
+  public class StateTransition
   {
     private State _targetState;
-    private StateCondition[] _conditions;
+    private StateConditionEvaluation[] _conditions;
     private int[] _resultGroups;
     private bool[] _results;
 
     internal StateTransition() { }
-    public StateTransition(State targetState, StateCondition[] conditions, int[] resultGroups = null)
+    public StateTransition(State targetState, StateConditionEvaluation[] conditions, int[] resultGroups = null)
     {
       Init(targetState, conditions, resultGroups);
     }
 
-    internal void Init(State targetState, StateCondition[] conditions, int[] resultGroups = null)
+    internal void Init(State targetState, StateConditionEvaluation[] conditions, int[] resultGroups = null)
     {
       _targetState = targetState;
       _conditions = conditions;
@@ -35,13 +35,13 @@
     public void OnStateEnter()
     {
       for (int i = 0; i < _conditions.Length; i++)
-        _conditions[i]._condition.OnStateEnter();
+        _conditions[i].OnStateEnter();
     }
 
     public void OnStateExit()
     {
       for (int i = 0; i < _conditions.Length; i++)
-        _conditions[i]._condition.OnStateExit();
+        _conditions[i].OnStateExit();
     }
 
     private bool ShouldTransition()
@@ -71,7 +71,7 @@
     internal void ClearConditionsCache()
     {
       for (int i = 0; i < _conditions.Length; i++)
-        _conditions[i]._condition.ClearStatementCache();
+        _conditions[i].ClearCache();
     }
   }
 }

@@ -1,32 +1,22 @@
-﻿
+using System;
 
 namespace CupkekGames.StateMachines
 {
   /// <summary>
-  /// An object representing an action.
+  /// Base class for state actions. Subclasses author behavior; serialized fields are
+  /// authored once on the owning <see cref="StateSO"/> via <c>[SerializeReference]</c>.
+  /// Default <see cref="Clone"/> returns a new instance via the parameterless constructor —
+  /// override if your action carries authored configuration.
   /// </summary>
-  public abstract class StateAction : IStateComponent
+  [Serializable]
+  public abstract class StateAction : IStateAction
   {
-    internal StateActionSO _originSO;
-
-    /// <summary>
-    /// Use this property to access shared data from the <see cref="StateActionSO"/> that corresponds to this <see cref="StateAction"/>
-    /// </summary>
-    protected StateActionSO OriginSO => _originSO;
-
-    /// <summary>
-    /// Called every frame the <see cref="StateMachine"/> is in a <see cref="State"/> with this <see cref="StateAction"/>.
-    /// </summary>
-    public virtual void OnUpdate() { }
-
-    /// <summary>
-    /// Awake is called when creating a new instance. Use this method to cache the components needed for the action.
-    /// </summary>
-    /// <param name="stateMachine">The <see cref="StateMachine"/> this instance belongs to.</param>
     public virtual void Awake(StateMachine stateMachine) { }
-
     public virtual void OnStateEnter() { }
     public virtual void OnStateExit() { }
+    public virtual void OnUpdate() { }
+
+    public virtual IStateAction Clone() => (IStateAction)Activator.CreateInstance(GetType());
 
     /// <summary>
     /// This enum is used to create flexible <c>StateActions</c> which can execute in any of the 3 available "moments".

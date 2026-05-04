@@ -1,65 +1,40 @@
-﻿
+using System;
 
 namespace CupkekGames.StateMachines
 {
   /// <summary>
-  /// Class that represents a conditional statement.
+  /// Base class for transition conditions. Subclasses override <see cref="Statement"/>;
+  /// serialized fields are authored once on the owning <see cref="TransitionTableSO"/>
+  /// via <c>[SerializeReference]</c>. Default <see cref="Clone"/> returns a new instance via
+  /// the parameterless constructor — override if your condition carries authored configuration.
   /// </summary>
-  public abstract class Condition : IStateComponent
+  [Serializable]
+  public abstract class Condition : IStateCondition
   {
-    private bool _isCached = false;
-    private bool _cachedStatement;
-    internal StateConditionSO _originSO;
-
-    /// <summary>
-    /// Use this property to access shared data from the <see cref="StateConditionSO"/> that corresponds to this <see cref="Condition"/>
-    /// </summary>
-    protected StateConditionSO OriginSO => _originSO;
-
-    /// <summary>
-    /// Specify the statement to evaluate.
-    /// </summary>
-    /// <returns></returns>
-    protected abstract bool Statement();
-
-    /// <summary>
-    /// Wrap the <see cref="Statement"/> so it can be cached.
-    /// </summary>
-    internal bool GetStatement()
-    {
-      if (!_isCached)
-      {
-        _isCached = true;
-        _cachedStatement = Statement();
-      }
-
-      return _cachedStatement;
-    }
-
-    internal void ClearStatementCache()
-    {
-      _isCached = false;
-    }
-
-    /// <summary>
-    /// Awake is called when creating a new instance. Use this method to cache the components needed for the condition.
-    /// </summary>
-    /// <param name="stateMachine">The <see cref="StateMachine"/> this instance belongs to.</param>
     public virtual void Awake(StateMachine stateMachine) { }
     public virtual void OnStateEnter() { }
     public virtual void OnStateExit() { }
+    public abstract bool Statement();
+
+    public virtual IStateCondition Clone() => (IStateCondition)Activator.CreateInstance(GetType());
   }
 
   /// <summary>
-  /// Struct containing a Condition and its expected result.
+  /// Runtime evaluation wrapper that pairs an <see cref="IStateCondition"/> with the expected
+  /// boolean outcome and caches its <see cref="IStateCondition.Statement"/> result for the
+  /// current evaluation pass.
   /// </summary>
-  public readonly struct StateCondition
+  public class StateConditionEvaluation
   {
-    internal readonly StateMachine _stateMachine;
-    internal readonly Condition _condition;
-    internal readonly bool _expectedResult;
+    private readonly StateMachine _stateMachine;
+    private readonly IStateCondition _condition;
+    private readonly bool _expectedResult;
+    private bool _isCached;
+    private bool _cachedStatement;
 
-    public StateCondition(StateMachine stateMachine, Condition condition, bool expectedResult)
+    public IStateCondition Condition => _condition;
+
+    public StateConditionEvaluation(StateMachine stateMachine, IStateCondition condition, bool expectedResult)
     {
       _stateMachine = stateMachine;
       _condition = condition;
@@ -68,13 +43,22 @@ namespace CupkekGames.StateMachines
 
     public bool IsMet()
     {
-      bool statement = _condition.GetStatement();
-      bool isMet = statement == _expectedResult;
+      if (!_isCached)
+      {
+        _isCached = true;
+        _cachedStatement = _condition.Statement();
+      }
+
+      bool isMet = _cachedStatement == _expectedResult;
 
 #if UNITY_EDITOR
-      _stateMachine._debugger.TransitionConditionResult(_condition._originSO.name, statement, isMet);
+      _stateMachine._debugger.TransitionConditionResult(_condition.GetType().Name, _cachedStatement, isMet);
 #endif
       return isMet;
     }
+
+    public void OnStateEnter() => _condition.OnStateEnter();
+    public void OnStateExit() => _condition.OnStateExit();
+    public void ClearCache() => _isCached = false;
   }
 }

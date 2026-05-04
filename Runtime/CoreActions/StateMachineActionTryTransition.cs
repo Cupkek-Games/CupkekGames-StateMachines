@@ -1,16 +1,12 @@
-using UnityEngine;
+using System;
 
 namespace CupkekGames.StateMachines
 {
-  [CreateAssetMenu(fileName = "TryTransition", menuName = "CupkekGames/State Machines/Action/TryTransition")]
-  public class StateMachineActionTryTransitionSO : StateActionSO
-  {
-    protected override StateAction CreateAction() => new StateMachineActionTryTransition();
-  }
-
+  [Serializable]
   public class StateMachineActionTryTransition : StateAction
   {
     private StateMachine _stateMachine;
+
     public override void Awake(StateMachine stateMachine)
     {
       _stateMachine = stateMachine;

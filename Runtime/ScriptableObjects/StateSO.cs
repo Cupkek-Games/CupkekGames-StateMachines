@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CupkekGames.StateMachines
@@ -6,35 +6,43 @@ namespace CupkekGames.StateMachines
   [CreateAssetMenu(fileName = "New State", menuName = "CupkekGames/State Machines/State")]
   public class StateSO : ScriptableObject
   {
-    [SerializeField] private StateActionSO[] _actions = null;
+    [SerializeReference] private List<IStateAction> _actions = new List<IStateAction>();
 
     /// <summary>
-    /// Will create a new state or return an existing one inside <paramref name="createdInstances"/>.
+    /// Will create a new state or return an existing one inside <paramref name="createdStates"/>.
     /// </summary>
-    internal State GetState(StateMachine stateMachine, Dictionary<ScriptableObject, object> createdInstances)
+    internal State GetState(StateMachine stateMachine, Dictionary<StateSO, State> createdStates)
     {
-      if (createdInstances.TryGetValue(this, out var obj))
-        return (State)obj;
+      if (createdStates.TryGetValue(this, out State existing))
+        return existing;
 
-      var state = new State();
-      createdInstances.Add(this, state);
+      State state = new State();
+      createdStates.Add(this, state);
 
       state._originSO = this;
       state._stateMachine = stateMachine;
       state._transitions = new StateTransition[0];
-      state._actions = GetActions(_actions, stateMachine, createdInstances);
+      state._actions = BuildActions(stateMachine);
 
       return state;
     }
 
-    private static StateAction[] GetActions(StateActionSO[] scriptableActions,
-      StateMachine stateMachine, Dictionary<ScriptableObject, object> createdInstances)
+    private IStateAction[] BuildActions(StateMachine stateMachine)
     {
-      int count = scriptableActions.Length;
-      var actions = new StateAction[count];
+      int count = _actions.Count;
+      IStateAction[] actions = new IStateAction[count];
       for (int i = 0; i < count; i++)
-        actions[i] = scriptableActions[i].GetAction(stateMachine, createdInstances);
-
+      {
+        IStateAction template = _actions[i];
+        if (template == null)
+        {
+          Debug.LogError($"StateSO '{name}' has a null action at index {i}.");
+          continue;
+        }
+        IStateAction instance = template.Clone();
+        instance.Awake(stateMachine);
+        actions[i] = instance;
+      }
       return actions;
     }
   }
